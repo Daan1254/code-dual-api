@@ -1,12 +1,16 @@
+import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.enableCors();
   app.setGlobalPrefix('api');
+  app.useGlobalPipes(new ValidationPipe());
+
+  const operationIdFactory = (controllerKey: string, methodKey: string) =>
+    `${methodKey}`;
 
   const config = new DocumentBuilder()
     .setTitle('Code Dual API')
@@ -15,7 +19,9 @@ async function bootstrap() {
     .addTag('code-dual')
     .build();
 
-  const document = SwaggerModule.createDocument(app, config);
+  const document = SwaggerModule.createDocument(app, config, {
+    operationIdFactory,
+  });
   SwaggerModule.setup('api', app, document);
 
   await app.listen(process.env.PORT ?? 3000);
