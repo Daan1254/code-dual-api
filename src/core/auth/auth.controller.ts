@@ -20,6 +20,10 @@ export class AuthController {
   }
 
   @Post('register')
+  @ApiOkResponse({
+    description: 'Register to the application',
+    type: AccessTokenDto,
+  })
   async register(@Body() body: RegisterDto) {
     return await this.authService.register(body);
   }

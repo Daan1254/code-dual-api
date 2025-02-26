@@ -13,11 +13,48 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum GameStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ProgrammingLanguage {
+  JAVASCRIPT
+  TYPESCRIPT
+  PYTHON
+  JAVA
+  CSHARP
+}
+
 model User {
+  id                String              @id @default(uuid())
+  email             String              @unique
+  username          String              @unique
+  password          String
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  preferredLanguage ProgrammingLanguage @default(TYPESCRIPT)
+  participatedGames GameParticipant[]
+}
+
+model Game {
+  id           String            @id @default(uuid())
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  participants GameParticipant[]
+  status       GameStatus        @default(PENDING)
+}
+
+model GameParticipant {
   id        String   @id @default(uuid())
-  email     String   @unique
-  username  String   @unique
-  password  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  game      Game     @relation(fields: [gameId], references: [id])
+  gameId    String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+
+  @@unique([gameId, userId])
 }

@@ -62,6 +62,8 @@ export class AuthService {
       password: hashedPassword,
     });
 
-    return newUser;
+    return {
+      access_token: await this.jwtService.signAsync(newUser),
+    };
   }
 }
