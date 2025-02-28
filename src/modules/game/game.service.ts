@@ -1,16 +1,59 @@
-import { InjectQueue } from '@nestjs/bull';
-import { Injectable } from '@nestjs/common';
-import { Queue } from 'bull';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
+import { GameStatus } from '@prisma/client';
+import { GameRepository } from './game.repository';
+
+export const MAX_LOBBY_SIZE = 6;
 
 @Injectable()
 export class GameService {
-  constructor(@InjectQueue('game') private gameQueue: Queue) {}
+  private logger: Logger;
 
-  async joinQueue(userId: string) {
-    await this.gameQueue.add('processGame', { userId });
+  constructor(private readonly gameRepository: GameRepository) {
+    this.logger = new Logger(GameService.name);
   }
 
-  async leaveQueue(userId: string) {
-    // await this.gameQueue.removeListener(userId);
+  async findAvailableGame() {
+    return await this.gameRepository.findAvailableGame();
+  }
+
+  async createGame() {
+    return this.gameRepository.createGame();
+  }
+
+  async joinGame(id: string, userId: string) {
+    const game = await this.gameRepository.findGameById(id);
+
+    if (!game) {
+      throw new NotFoundException('Game not found');
+    }
+
+    if (game.status !== GameStatus.PENDING) {
+      throw new BadRequestException('Game is not pending');
+    }
+
+    if (game.participants.length >= MAX_LOBBY_SIZE) {
+      throw new BadRequestException('Game is full');
+    }
+
+    return await this.gameRepository.joinGame(id, userId);
+  }
+
+  async findGameById(id: string) {
+    const game = await this.gameRepository.findGameById(id);
+
+    if (!game) {
+      throw new NotFoundException('Game not found');
+    }
+
+    return game;
+  }
+
+  async updateGameStatus(gameId: string, status: GameStatus) {
+    return await this.gameRepository.updateGameStatus(gameId, status);
   }
 }

@@ -10,6 +10,8 @@ export class GameController {
   @Post('join')
   @IsAuthenticated()
   async joinQueue(@Req() req: RequestWithAuth) {
-    return this.gameService.joinQueue(req.user.id);
+    return {
+      ok: true,
+    };
   }
 }

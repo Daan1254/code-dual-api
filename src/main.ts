@@ -17,6 +17,7 @@ async function bootstrap() {
     .setDescription('The Code Dual API description')
     .setVersion('1.0')
     .addTag('code-dual')
+    .addBearerAuth()
     .build();
 
   const document = SwaggerModule.createDocument(app, config, {
