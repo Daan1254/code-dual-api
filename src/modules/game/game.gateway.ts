@@ -28,7 +28,7 @@ export class GameGateway {
     @ConnectedSocket() client: Socket,
     payload: { userId: string; preferredLanguage: string },
   ) {
-    this.logger.log(`User ${payload.userId ?? 'kanker'} joined queue`);
+    this.logger.log(`User ${payload.userId} joined queue`);
     try {
       // Find an available lobby (PENDING game with less than MAX_LOBBY_SIZE players)
       const pendingGame = await this.gameService.findAvailableGame();
