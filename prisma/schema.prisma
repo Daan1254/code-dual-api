@@ -28,6 +28,12 @@ enum ProgrammingLanguage {
   CSHARP
 }
 
+enum GameDifficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
 model User {
   id                String              @id @default(uuid())
   email             String              @unique
@@ -41,6 +47,8 @@ model User {
 
 model Game {
   id           String            @id @default(uuid())
+  challenge    CodeChallenge     @relation(fields: [challengeId], references: [id])
+  challengeId  String
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
   participants GameParticipant[]
@@ -48,13 +56,29 @@ model Game {
 }
 
 model GameParticipant {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  game      Game     @relation(fields: [gameId], references: [id])
-  gameId    String
-  user      User     @relation(fields: [userId], references: [id])
-  userId    String
+  id          String    @id @default(uuid())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  game        Game      @relation(fields: [gameId], references: [id])
+  gameId      String
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
+  currentCode String? // Store player's current code
+  isCompleted Boolean   @default(false)
+  completedAt DateTime?
 
   @@unique([gameId, userId])
+}
+
+model CodeChallenge {
+  id          String         @id @default(uuid())
+  title       String
+  description String
+  difficulty  GameDifficulty
+  testCases   Json // Store test cases as JSON
+  starterCode String // Initial code template
+  solution    String // Reference solution
+  games       Game[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
 }
