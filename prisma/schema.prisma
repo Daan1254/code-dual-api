@@ -56,16 +56,18 @@ model Game {
 }
 
 model GameParticipant {
-  id          String    @id @default(uuid())
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  game        Game      @relation(fields: [gameId], references: [id])
+  id          String              @id @default(uuid())
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  game        Game                @relation(fields: [gameId], references: [id])
   gameId      String
-  user        User      @relation(fields: [userId], references: [id])
+  user        User                @relation(fields: [userId], references: [id])
   userId      String
-  currentCode String? // Store player's current code
-  isCompleted Boolean   @default(false)
+  currentCode String?
+  language    ProgrammingLanguage @default(TYPESCRIPT)
+  isCompleted Boolean             @default(false)
   completedAt DateTime?
+  isHost      Boolean             @default(false)
 
   @@unique([gameId, userId])
 }

@@ -47,10 +47,12 @@ export class GameRepository {
   }
 
   async joinGame(gameId: string, userId: string) {
-    console.log('joinGame', gameId, userId);
     const [game, user] = await Promise.all([
       this.prisma.game.findUnique({
         where: { id: gameId },
+        include: {
+          participants: true,
+        },
       }),
       this.prisma.user.findUnique({
         where: { id: userId },
@@ -65,10 +67,22 @@ export class GameRepository {
       throw new WsException('User not found');
     }
 
+    const existingParticipant = await this.prisma.gameParticipant.findFirst({
+      where: {
+        gameId,
+        userId,
+      },
+    });
+
+    if (existingParticipant) {
+      throw new WsException('User already joined the game');
+    }
+
     const participant = await this.prisma.gameParticipant.create({
       data: {
         gameId,
         userId,
+        isHost: game.participants.length === 0,
       },
       include: {
         game: {

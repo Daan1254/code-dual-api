@@ -4,6 +4,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { WsException } from '@nestjs/websockets';
 import { GameDifficulty, GameStatus } from '@prisma/client';
 import { PrismaService } from 'src/core/database/prisma.service';
 import { GameRepository } from './game.repository';
@@ -103,6 +104,61 @@ export class GameService {
     });
   }
 
+  async leaveGame(gameId: string, userId: string) {
+    const game = await this.prisma.game.findUnique({
+      where: { id: gameId },
+      include: { participants: true },
+    });
+
+    console.log('game', game);
+
+    if (!game) {
+      throw new WsException('Game not found');
+    }
+
+    const isHost = game.participants.find((p) => p.userId === userId)?.isHost;
+    const isLastPlayer = game.participants.length === 1;
+
+    console.log('isHost', isHost);
+    console.log('isLastPlayer', isLastPlayer);
+    console.log('gameId', gameId);
+    console.log('userId', userId);
+
+    await this.prisma.gameParticipant.delete({
+      where: { gameId_userId: { gameId, userId } },
+    });
+
+    if (isLastPlayer) {
+      await this.deleteGame(gameId);
+      return;
+    }
+
+    if (isHost) {
+      await this.assignNewHost(gameId);
+    }
+  }
+
+  private async assignNewHost(gameId: string) {
+    const nextHost = await this.prisma.gameParticipant.findFirst({
+      where: { gameId },
+    });
+
+    if (!nextHost) {
+      return; // Game was likely deleted
+    }
+
+    await this.prisma.gameParticipant.update({
+      where: { id: nextHost.id },
+      data: { isHost: true },
+    });
+  }
+
+  private async deleteGame(gameId: string) {
+    await this.prisma.game.delete({
+      where: { id: gameId },
+    });
+  }
+
   async findActiveGameByUserId(id: string) {
     const game = await this.prisma.gameParticipant.findFirst({
       where: {
@@ -116,6 +172,10 @@ export class GameService {
       },
     });
 
-    return game;
+    if (!game) {
+      throw new WsException('Game not found');
+    }
+
+    return game.game;
   }
 }

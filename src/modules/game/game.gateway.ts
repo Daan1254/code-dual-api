@@ -47,31 +47,13 @@ export class GameGateway {
       client.join(game.id);
 
       // Notify all players in the lobby
-      this.server.to(game.id).emit('playerJoined', {
-        gameId: game.id,
-        playerCount: game.participants.length,
-        players: game.participants.map((p) => ({
-          userId: p.userId,
-          username: p.user.username,
-        })),
-      });
+      this.server.to(game.id).emit('playerJoined', game);
 
       // If lobby is full, start the game
       if (game.participants.length === MAX_LOBBY_SIZE) {
-        const startedGame = await this.gameService.startGame(game.id);
+        await this.gameService.startGame(game.id);
 
-        this.server.to(game.id).emit('gameStart', {
-          gameId: game.id,
-          challenge: {
-            title: startedGame.challenge.title,
-            description: startedGame.challenge.description,
-            starterCode: startedGame.challenge.starterCode,
-          },
-          players: startedGame.participants.map((p) => ({
-            userId: p.userId,
-            username: p.user.username,
-          })),
-        });
+        this.server.to(game.id).emit('gameStart', game);
       }
     } catch (error) {
       client.emit('error', { message: 'Failed to join queue' });
@@ -82,29 +64,26 @@ export class GameGateway {
   @SubscribeMessage('leaveQueue')
   async handleLeaveQueue(
     @ConnectedSocket() client: Socket,
-    payload: { userId: string },
+    @MessageBody() payload: { userId: string },
   ) {
     try {
       // Find user's pending game
+      console.log('leaveQueue', payload);
+      const game = await this.gameService.findActiveGameByUserId(
+        payload.userId,
+      );
 
-      const game = await this.gameService.findActiveGameByUserId(client.id);
-
+      console.log('game', game);
       if (!game) {
         throw new WsException('Player is not in a game');
       }
 
       client.leave(game.id);
+      await this.gameService.leaveGame(game.id, payload.userId);
 
       const updatedGame = await this.gameService.findGameById(game.id);
 
-      this.server.to(game.id).emit('playerLeft', {
-        gameId: game.id,
-        playerCount: updatedGame.participants.length,
-        players: updatedGame.participants.map((p) => ({
-          userId: p.userId,
-          username: p.user.username,
-        })),
-      });
+      this.server.to(game.id).emit('playerLeft', updatedGame);
     } catch (error) {
       client.emit('error', { message: error.message });
     }
