@@ -30,6 +30,9 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/prisma ./prisma
 
+# Install curl for healthcheck
+RUN apk add --no-cache curl
+
 # Expose the port the app runs on
 EXPOSE 3000
 
@@ -38,5 +41,12 @@ ENV NODE_ENV=production
 ENV DATABASE_URL=${DATABASE_URL}
 ENV JWT_SECRET=${JWT_SECRET}
 
+# Create a startup script
+RUN echo '#!/bin/sh\n\
+    echo "Running database migrations..."\n\
+    npx prisma migrate deploy\n\
+    echo "Starting NestJS application..."\n\
+    npm run start:prod' > /app/start.sh && chmod +x /app/start.sh
+
 # Start the application
-CMD ["node", "./dist/main.js"]
+CMD ["/app/start.sh"]
