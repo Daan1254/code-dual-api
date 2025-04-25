@@ -37,8 +37,6 @@ EXPOSE 3000
 ENV NODE_ENV=production
 ENV DATABASE_URL=${DATABASE_URL}
 ENV JWT_SECRET=${JWT_SECRET}
-ENV STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
-ENV STRIPE_ACCOUNT_ID=${STRIPE_ACCOUNT_ID}
 
 # Start the application
-CMD ["npm", "run", "start:prod"]
+CMD ["node", "./dist/main.js"]
