@@ -1,6 +1,21 @@
 version: '3.8'
 
 services:
+  api:
+    build:
+      context: .
+      dockerfile: DockerFile
+    container_name: code_dual_api
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - JWT_SECRET=${JWT_SECRET}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_ACCOUNT_ID=${STRIPE_ACCOUNT_ID}
+    depends_on:
+      - postgres
+
   postgres:
     image: postgres:latest
     container_name: postgres_db

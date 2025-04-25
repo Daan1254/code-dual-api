@@ -40,4 +40,10 @@ export class GameParticipantDto {
   })
   @Expose()
   language: ProgrammingLanguage;
+
+  @ApiProperty({
+    type: Boolean,
+  })
+  @Expose()
+  isHost: boolean;
 }
