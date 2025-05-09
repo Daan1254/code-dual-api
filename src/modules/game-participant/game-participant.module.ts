@@ -1,9 +1,8 @@
 import { Module } from '@nestjs/common';
-import { PrismaService } from 'src/core/database/prisma.service';
 
 @Module({
   imports: [],
-  providers: [PrismaService],
+  providers: [],
   exports: [],
 })
 export class GameParticipantModule {}

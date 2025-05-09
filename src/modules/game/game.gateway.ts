@@ -1,15 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import {
-  ConnectedSocket,
-  MessageBody,
-  SubscribeMessage,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
   WebSocketGateway,
   WebSocketServer,
-  WsException,
 } from '@nestjs/websockets';
-import { GameDifficulty } from '@prisma/client';
 import { Server, Socket } from 'socket.io';
-import { GameService, MAX_LOBBY_SIZE } from './game.service';
+import { GameService } from './game.service';
 
 @Injectable()
 @WebSocketGateway(80, {
@@ -20,7 +17,7 @@ import { GameService, MAX_LOBBY_SIZE } from './game.service';
     credentials: true,
   },
 })
-export class GameGateway {
+export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
@@ -30,62 +27,54 @@ export class GameGateway {
     this.logger = new Logger(GameGateway.name);
   }
 
-  @SubscribeMessage('joinQueue')
-  async handleJoinQueue(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() payload: { userId: string; difficulty: GameDifficulty },
-  ) {
-    console.log('joinQueue', payload);
+  async handleConnection(client: Socket) {
+    const userId = client.handshake.auth.userId;
+    client.data.userId = userId;
 
-    try {
-      const game = await this.gameService.findOrCreateGame(
-        payload.userId,
-        payload.difficulty,
-      );
+    this.logger.log(`Client connected: ${userId}`);
 
-      // Join socket room
-      client.join(game.id);
+    const game = await this.gameService.findGameByUserId(userId);
 
-      // Notify all players in the lobby
-      this.server.to(game.id).emit('playerJoined', game);
-
-      // If lobby is full, start the game
-      if (game.participants.length === MAX_LOBBY_SIZE) {
-        await this.gameService.startGame(game.id);
-
-        this.server.to(game.id).emit('gameStart', game);
-      }
-    } catch (error) {
-      client.emit('error', { message: 'Failed to join queue' });
-      console.error('Queue join error:', error);
+    if (!game) {
+      client.emit('error', { message: 'PLAYER_NOT_IN_GAME' });
+      client.disconnect();
+      return;
     }
+
+    client.data.gameId = game.id;
+
+    client.emit('gameState', game);
   }
 
-  @SubscribeMessage('leaveQueue')
-  async handleLeaveQueue(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() payload: { userId: string },
-  ) {
-    try {
-      // Find user's pending game
-      console.log('leaveQueue', payload);
-      const game = await this.gameService.findActiveGameByUserId(
-        payload.userId,
-      );
-
-      console.log('game', game);
-      if (!game) {
-        throw new WsException('Player is not in a game');
-      }
-
-      client.leave(game.id);
-      await this.gameService.leaveGame(game.id, payload.userId);
-
-      const updatedGame = await this.gameService.findGameById(game.id);
-
-      this.server.to(game.id).emit('playerLeft', updatedGame);
-    } catch (error) {
-      client.emit('error', { message: error.message });
-    }
+  async handleDisconnect(client: Socket) {
+    this.logger.log(`Client disconnected: ${client.data.userId}`);
   }
+
+  // @SubscribeMessage('leaveQueue')
+  // async handleLeaveQueue(
+  //   @ConnectedSocket() client: Socket,
+  //   @MessageBody() payload: { userId: string },
+  // ) {
+  //   try {
+  //     // Find user's pending game
+  //     console.log('leaveQueue', payload);
+  //     const game = await this.gameService.findActiveGameByUserId(
+  //       payload.userId,
+  //     );
+
+  //     console.log('game', game);
+  //     if (!game) {
+  //       throw new WsException('Player is not in a game');
+  //     }
+
+  //     client.leave(game.id);
+  //     await this.gameService.leaveGame(game.id, payload.userId);
+
+  //     const updatedGame = await this.gameService.findGameById(game.id);
+
+  //     this.server.to(game.id).emit('playerLeft', updatedGame);
+  //   } catch (error) {
+  //     client.emit('error', { message: error.message });
+  //   }
+  // }
 }

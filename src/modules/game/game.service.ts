@@ -5,94 +5,27 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { WsException } from '@nestjs/websockets';
-import { GameDifficulty, GameStatus } from '@prisma/client';
+import { GameStatus } from '@prisma/client';
 import { PrismaService } from 'src/core/database/prisma.service';
-import { GameRepository } from './game.repository';
+import { ChallengeService } from '../challenge/challenge.service';
 
 export const MAX_LOBBY_SIZE = 6;
 
 @Injectable()
 export class GameService {
-  private logger: Logger;
+  private logger: Logger = new Logger(GameService.name);
 
   constructor(
-    private readonly gameRepository: GameRepository,
     private readonly prisma: PrismaService,
-  ) {
-    this.logger = new Logger(GameService.name);
-  }
-
-  async findAvailableGame(difficulty: GameDifficulty) {
-    return await this.gameRepository.findAvailableGame(difficulty);
-  }
+    private readonly challengeService: ChallengeService,
+  ) {}
 
   async createGame(challengeId: string) {
-    return this.gameRepository.createGame(challengeId);
-  }
-
-  async joinGame(id: string, userId: string) {
-    const game = await this.gameRepository.findGameById(id);
-
-    if (!game) {
-      throw new NotFoundException('Game not found');
-    }
-
-    if (game.status !== GameStatus.PENDING) {
-      throw new BadRequestException('Game is not pending');
-    }
-
-    if (game.participants.length >= MAX_LOBBY_SIZE) {
-      throw new BadRequestException('Game is full');
-    }
-
-    return await this.gameRepository.joinGame(id, userId);
-  }
-
-  async findGameById(id: string) {
-    const game = await this.gameRepository.findGameById(id);
-
-    if (!game) {
-      throw new NotFoundException('Game not found');
-    }
-
-    return game;
-  }
-
-  async updateGameStatus(gameId: string, status: GameStatus) {
-    return await this.gameRepository.updateGameStatus(gameId, status);
-  }
-
-  async findOrCreateGame(userId: string, difficulty: GameDifficulty) {
-    // First try to find an available game
-    let game = await this.gameRepository.findAvailableGame(difficulty);
-
-    console.log('game', game);
-
-    if (!game) {
-      // If no game available, get a random challenge of the requested difficulty
-      const challenge = await this.prisma.codeChallenge.findFirst({
-        where: { difficulty },
-        orderBy: { createdAt: 'desc' },
-      });
-
-      if (!challenge) {
-        throw new NotFoundException('No challenges available');
-      }
-
-      // Create a new game with the selected challenge
-      game = await this.gameRepository.createGame(challenge.id);
-    }
-
-    // Join the game
-    const participant = await this.gameRepository.joinGame(game.id, userId);
-
-    return participant.game;
-  }
-
-  async startGame(gameId: string) {
-    return await this.prisma.game.update({
-      where: { id: gameId },
-      data: { status: GameStatus.IN_PROGRESS },
+    return await this.prisma.game.create({
+      data: {
+        challengeId,
+        status: GameStatus.PENDING,
+      },
       include: {
         challenge: true,
         participants: {
@@ -102,6 +35,27 @@ export class GameService {
         },
       },
     });
+  }
+
+  async findGameByUserId(userId: any) {
+    const game = await this.prisma.gameParticipant.findFirst({
+      where: { userId },
+      include: {
+        game: {
+          include: {
+            participants: {
+              include: { user: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!game) {
+      return null;
+    }
+
+    return game.game;
   }
 
   async leaveGame(gameId: string, userId: string) {
@@ -138,6 +92,115 @@ export class GameService {
     }
   }
 
+  async findActiveGameByUserId(id: string) {
+    const game = await this.prisma.gameParticipant.findFirst({
+      where: {
+        userId: id,
+        game: {
+          status: GameStatus.PENDING,
+        },
+      },
+      include: {
+        game: true,
+      },
+    });
+
+    if (!game) {
+      throw new WsException('Game not found');
+    }
+
+    return game.game;
+  }
+
+  async joinOrCreateGame(userId: string) {
+    const game = await this.prisma.gameParticipant.findFirst({
+      where: {
+        userId,
+        game: {
+          status: GameStatus.PENDING,
+        },
+      },
+      include: {
+        game: true,
+      },
+    });
+
+    if (game) {
+      return game.game;
+    }
+
+    const existingGame = await this.prisma.game.findFirst({
+      where: {
+        status: GameStatus.PENDING,
+      },
+      include: {
+        participants: {
+          include: {
+            user: true,
+          },
+        },
+        challenge: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    if (existingGame) {
+      await this.joinGame(existingGame.id, userId);
+      return existingGame;
+    }
+
+    const challenge = await this.challengeService.findRandomChallenge();
+
+    const newGame = await this.createGame(challenge.id);
+
+    await this.joinGame(newGame.id, userId);
+
+    return newGame;
+  }
+
+  private async joinGame(id: string, userId: string) {
+    const game = await this.prisma.game.findUnique({
+      where: { id },
+      include: {
+        participants: true,
+      },
+    });
+
+    if (!game) {
+      throw new NotFoundException('Game not found');
+    }
+
+    if (game.status !== GameStatus.PENDING) {
+      throw new BadRequestException('Game is not pending');
+    }
+
+    if (game.participants.length >= MAX_LOBBY_SIZE) {
+      throw new BadRequestException('Game is full');
+    }
+
+    const participant = await this.prisma.gameParticipant.findUnique({
+      where: {
+        gameId_userId: {
+          gameId: game.id,
+          userId,
+        },
+      },
+    });
+
+    if (participant) {
+      throw new BadRequestException('User already joined the game');
+    }
+
+    return await this.prisma.gameParticipant.create({
+      data: {
+        gameId: game.id,
+        userId,
+      },
+    });
+  }
+
   private async assignNewHost(gameId: string) {
     const nextHost = await this.prisma.gameParticipant.findFirst({
       where: { gameId },
@@ -157,25 +220,5 @@ export class GameService {
     await this.prisma.game.delete({
       where: { id: gameId },
     });
-  }
-
-  async findActiveGameByUserId(id: string) {
-    const game = await this.prisma.gameParticipant.findFirst({
-      where: {
-        userId: id,
-        game: {
-          status: GameStatus.PENDING,
-        },
-      },
-      include: {
-        game: true,
-      },
-    });
-
-    if (!game) {
-      throw new WsException('Game not found');
-    }
-
-    return game.game;
   }
 }

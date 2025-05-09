@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Req } from '@nestjs/common';
+import { Controller, Post, Req } from '@nestjs/common';
 import { ApiOkResponse } from '@nestjs/swagger';
 import { IsAuthenticated } from 'src/core/auth/auth.decorator';
 import { RequestWithAuth } from 'src/core/auth/auth.guard';
@@ -9,12 +9,12 @@ import { GameService } from './game.service';
 export class GameController {
   constructor(private readonly gameService: GameService) {}
 
-  @Get(':id')
+  @Post()
   @IsAuthenticated()
   @ApiOkResponse({
     type: GameDto,
   })
-  async getGame(@Param('id') id: string, @Req() req: RequestWithAuth) {
-    return this.gameService.findGameById(id);
+  async createGame(@Req() req: RequestWithAuth) {
+    return await this.gameService.joinOrCreateGame(req.user.id);
   }
 }
