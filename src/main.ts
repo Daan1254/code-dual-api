@@ -1,5 +1,6 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 async function bootstrap() {
@@ -8,6 +9,8 @@ async function bootstrap() {
   app.enableCors();
   app.setGlobalPrefix('api');
   app.useGlobalPipes(new ValidationPipe());
+
+  app.useWebSocketAdapter(new IoAdapter(app));
 
   const operationIdFactory = (controllerKey: string, methodKey: string) =>
     `${methodKey}`;
