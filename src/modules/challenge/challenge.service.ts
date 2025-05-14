@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/core/database/prisma.service';
-import { ChallengeDto } from './dto/challenge.dto';
 
 @Injectable()
 export class ChallengeService {
@@ -17,6 +16,6 @@ export class ChallengeService {
       throw new NotFoundException('No challenges found');
     }
 
-    return ChallengeDto.fromDb(challenge);
+    return challenge;
   }
 }

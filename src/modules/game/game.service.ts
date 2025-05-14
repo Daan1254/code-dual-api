@@ -8,8 +8,13 @@ import { WsException } from '@nestjs/websockets';
 import { GameStatus } from '@prisma/client';
 import { PrismaService } from 'src/core/database/prisma.service';
 import { ChallengeService } from '../challenge/challenge.service';
+import { GameDto } from './dto/game.dto';
 
 export const MAX_LOBBY_SIZE = 6;
+
+export type SafeResponse<T> =
+  | { ok: true; data: T; error?: never }
+  | { ok: false; data?: never; error: { code: string; message: string } };
 
 @Injectable()
 export class GameService {
@@ -25,6 +30,7 @@ export class GameService {
       data: {
         challengeId,
         status: GameStatus.PENDING,
+        startsAt: new Date(Date.now() + 1000 * 60 * 5),
       },
       include: {
         challenge: true,
@@ -37,7 +43,35 @@ export class GameService {
     });
   }
 
-  async findGameByUserId(userId: any) {
+  async findGame(id: string, userId: string): Promise<SafeResponse<GameDto>> {
+    const game = await this.prisma.game.findFirst({
+      where: { id, NOT: { status: GameStatus.COMPLETED } },
+      include: {
+        challenge: true,
+        participants: {
+          include: { user: true },
+        },
+      },
+    });
+
+    if (!game) {
+      return {
+        ok: false,
+        error: { code: 'GAME_NOT_FOUND', message: 'Game not found' },
+      };
+    }
+
+    if (!game.participants.find((p) => p.userId === userId)) {
+      return {
+        ok: false,
+        error: { code: 'PLAYER_NOT_IN_GAME', message: 'Player not in game' },
+      };
+    }
+
+    return { ok: true, data: GameDto.fromDb(game) };
+  }
+
+  async findGameByUserId(userId: any): Promise<SafeResponse<GameDto>> {
     const game = await this.prisma.gameParticipant.findFirst({
       where: { userId },
       include: {
@@ -52,13 +86,80 @@ export class GameService {
     });
 
     if (!game) {
-      return null;
+      return {
+        ok: false,
+        error: { code: 'GAME_NOT_FOUND', message: 'Game not found' },
+      };
     }
 
-    return game.game;
+    return { ok: true, data: GameDto.fromDb(game.game) };
   }
 
-  async leaveGame(gameId: string, userId: string) {
+  async startGame(id: string): Promise<SafeResponse<GameDto>> {
+    const game = await this.prisma.game.update({
+      where: { id },
+      data: { status: GameStatus.IN_PROGRESS },
+      include: {
+        participants: {
+          include: { user: true },
+        },
+        challenge: true,
+      },
+    });
+
+    return { ok: true, data: GameDto.fromDb(game) };
+  }
+
+  async submitCode(gameId: any, userId: any): Promise<SafeResponse<null>> {
+    const game = await this.prisma.game.findUnique({
+      where: { id: gameId },
+      include: { participants: true },
+    });
+
+    if (!game) {
+      return {
+        ok: false,
+        error: { code: 'GAME_NOT_FOUND', message: 'Game not found' },
+      };
+    }
+
+    const participant = game.participants.find((p) => p.userId === userId);
+
+    if (!participant) {
+      return {
+        ok: false,
+        error: { code: 'PLAYER_NOT_IN_GAME', message: 'Player not in game' },
+      };
+    }
+
+    if (participant.isCompleted) {
+      return {
+        ok: false,
+        error: {
+          code: 'PLAYER_ALREADY_COMPLETED',
+          message: 'Player already completed the game',
+        },
+      };
+    }
+
+    await this.prisma.gameParticipant.update({
+      where: { id: participant.id },
+      data: { isCompleted: true, completedAt: new Date() },
+    });
+
+    const isLastPlayer = game.participants.every((p) => p.isCompleted);
+
+    if (isLastPlayer) {
+      await this.prisma.game.update({
+        where: { id: gameId },
+        data: { status: GameStatus.COMPLETED },
+      });
+    }
+
+    return { ok: true, data: null };
+  }
+
+  async leaveGame(gameId: string, userId: string): Promise<SafeResponse<null>> {
     const game = await this.prisma.game.findUnique({
       where: { id: gameId },
       include: { participants: true },
@@ -67,7 +168,10 @@ export class GameService {
     console.log('game', game);
 
     if (!game) {
-      throw new WsException('Game not found');
+      return {
+        ok: false,
+        error: { code: 'GAME_NOT_FOUND', message: 'Game not found' },
+      };
     }
 
     const isHost = game.participants.find((p) => p.userId === userId)?.isHost;
@@ -84,12 +188,14 @@ export class GameService {
 
     if (isLastPlayer) {
       await this.deleteGame(gameId);
-      return;
+      return { ok: true, data: null };
     }
 
     if (isHost) {
       await this.assignNewHost(gameId);
     }
+
+    return { ok: true, data: null };
   }
 
   async findActiveGameByUserId(id: string) {
@@ -152,6 +258,7 @@ export class GameService {
     }
 
     const challenge = await this.challengeService.findRandomChallenge();
+    console.log('challenge', challenge);
 
     const newGame = await this.createGame(challenge.id);
 
@@ -197,6 +304,7 @@ export class GameService {
       data: {
         gameId: game.id,
         userId,
+        isHost: game.participants.length === 0,
       },
     });
   }
