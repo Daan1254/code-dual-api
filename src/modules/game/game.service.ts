@@ -45,7 +45,10 @@ export class GameService {
 
   async findGame(id: string, userId: string): Promise<SafeResponse<GameDto>> {
     const game = await this.prisma.game.findFirst({
-      where: { id, NOT: { status: GameStatus.COMPLETED } },
+      where: {
+        id,
+        NOT: { status: GameStatus.COMPLETED },
+      },
       include: {
         challenge: true,
         participants: {
@@ -98,7 +101,7 @@ export class GameService {
   async startGame(id: string): Promise<SafeResponse<GameDto>> {
     const game = await this.prisma.game.update({
       where: { id },
-      data: { status: GameStatus.IN_PROGRESS },
+      data: { status: GameStatus.IN_PROGRESS, startsAt: new Date() },
       include: {
         participants: {
           include: { user: true },
