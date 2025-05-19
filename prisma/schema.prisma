@@ -41,6 +41,7 @@ model User {
   password          String
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
+  stripeCustomerId  String?
   preferredLanguage ProgrammingLanguage @default(TYPESCRIPT)
   participatedGames GameParticipant[]
 }
