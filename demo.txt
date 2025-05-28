@@ -1,1 +1,2 @@
-Dit is een demo file om Husky te demonstreren! 
+Dit is een demo file om Husky te demonstreren!
+Nu test ik of de pre-commit hook werkt! 🚀 
