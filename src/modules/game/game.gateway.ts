@@ -44,8 +44,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    console.log('game', game.data);
-
     client.join(game.data.id);
 
     this.server.to(game.data.id).emit('gameState', game.data);
