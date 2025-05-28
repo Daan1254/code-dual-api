@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Exclude, Expose, Type } from 'class-transformer';
 import { IsEmail } from 'class-validator';
-import { SubscriptionDto } from 'src/modules/subscription/dto/subscription.dto';
+import { SubscriptionDto } from '../../../modules/subscription/dto/subscription.dto';
 
 @Exclude()
 export class UserDto {

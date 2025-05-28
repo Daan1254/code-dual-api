@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { GameDifficulty, ProgrammingLanguage } from '@prisma/client';
-import { PrismaService } from 'src/core/database/prisma.service';
+import { PrismaService } from '../../core/database/prisma.service';
 import { StatisticDto } from './dto/statistic.dto';
 
 @Injectable()

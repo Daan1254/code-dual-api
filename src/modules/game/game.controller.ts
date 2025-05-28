@@ -1,7 +1,7 @@
 import { Controller, Post, Req } from '@nestjs/common';
 import { ApiOkResponse } from '@nestjs/swagger';
-import { IsAuthenticated } from 'src/core/auth/auth.decorator';
-import { RequestWithAuth } from 'src/core/auth/auth.guard';
+import { IsAuthenticated } from '../../core/auth/auth.decorator';
+import { RequestWithAuth } from '../../core/auth/auth.guard';
 import { GameDto } from './dto/game.dto';
 import { GameService } from './game.service';
 

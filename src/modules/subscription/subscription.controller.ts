@@ -8,8 +8,8 @@ import {
   Req,
 } from '@nestjs/common';
 import { ApiOkResponse } from '@nestjs/swagger';
-import { IsAuthenticated } from 'src/core/auth/auth.decorator';
-import { RequestWithAuth } from 'src/core/auth/auth.guard';
+import { IsAuthenticated } from '../../core/auth/auth.decorator';
+import { RequestWithAuth } from '../../core/auth/auth.guard';
 import { RedirectDto } from './dto/redirect.dto';
 import { SubscriptionDto } from './dto/subscription.dto';
 import { SubscriptionService } from './subscription.service';

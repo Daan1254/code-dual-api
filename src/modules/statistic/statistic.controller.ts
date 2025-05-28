@@ -1,7 +1,7 @@
 import { Controller, Get, Req } from '@nestjs/common';
 import { ApiResponse } from '@nestjs/swagger';
-import { IsAuthenticated } from 'src/core/auth/auth.decorator';
-import { RequestWithAuth } from 'src/core/auth/auth.guard';
+import { IsAuthenticated } from '../../core/auth/auth.decorator';
+import { RequestWithAuth } from '../../core/auth/auth.guard';
 import { StatisticDto } from './dto/statistic.dto';
 import { StatisticService } from './statistic.service';
 

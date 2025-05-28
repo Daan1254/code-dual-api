@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { WsException } from '@nestjs/websockets';
 import { GameStatus } from '@prisma/client';
-import { PrismaService } from 'src/core/database/prisma.service';
+import { PrismaService } from '../../core/database/prisma.service';
 import { ChallengeService } from '../challenge/challenge.service';
 import { GameDto } from './dto/game.dto';
 

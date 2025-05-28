@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { RegisterDto } from 'src/core/auth/dto/register.dto';
-import { PrismaService } from 'src/core/database/prisma.service';
+import { RegisterDto } from '../../core/auth/dto/register.dto';
+import { PrismaService } from '../../core/database/prisma.service';
 import { SubscriptionDto } from '../subscription/dto/subscription.dto';
 import { SubscriptionService } from '../subscription/subscription.service';
 

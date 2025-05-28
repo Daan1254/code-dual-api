@@ -1,8 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { GameStatus } from '@prisma/client';
 import { Exclude, Expose, plainToInstance } from 'class-transformer';
-import { ChallengeDto } from 'src/modules/challenge/dto/challenge.dto';
-import { GameParticipantDto } from 'src/modules/game-participant/dto/game-participant.dto';
+import { ChallengeDto } from '../../challenge/dto/challenge.dto';
+import { GameParticipantDto } from '../../game-participant/dto/game-participant.dto';
 
 @Exclude()
 export class GameDto {

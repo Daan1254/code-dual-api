@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ProgrammingLanguage } from '@prisma/client';
 import { Exclude, Expose } from 'class-transformer';
-import { UserDto } from 'src/core/auth/dto/user.dto';
+import { UserDto } from '../../../core/auth/dto/user.dto';
 
 @Exclude()
 export class GameParticipantDto {

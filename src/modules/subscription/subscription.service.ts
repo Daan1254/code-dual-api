@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { PrismaService } from 'src/core/database/prisma.service';
 import Stripe from 'stripe';
+import { PrismaService } from '../../core/database/prisma.service';
 import { SubscriptionDto } from './dto/subscription.dto';
 
 @Injectable()
