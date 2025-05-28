@@ -23,7 +23,8 @@
     "test:ci": "jest --coverage --watchAll=false",
     "sonar": "sonar-scanner",
     "quality:check": "npm run lint:ci && npm run test:cov",
-    "quality:check:strict": "npm run lint:check && npm run test:cov"
+    "quality:check:strict": "npm run lint:check && npm run test:cov",
+    "prepare": "husky"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
