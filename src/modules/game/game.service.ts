@@ -150,6 +150,10 @@ export class GameService {
       data: { isCompleted: true, completedAt: new Date() },
     });
 
+    // Update the local participant to reflect the database change
+    participant.isCompleted = true;
+
+    // Now check if all participants are completed
     const isLastPlayer = game.participants.every((p) => p.isCompleted);
 
     if (isLastPlayer) {
@@ -168,8 +172,6 @@ export class GameService {
       include: { participants: true },
     });
 
-    console.log('game', game);
-
     if (!game) {
       return {
         ok: false,
@@ -179,11 +181,6 @@ export class GameService {
 
     const isHost = game.participants.find((p) => p.userId === userId)?.isHost;
     const isLastPlayer = game.participants.length === 1;
-
-    console.log('isHost', isHost);
-    console.log('isLastPlayer', isLastPlayer);
-    console.log('gameId', gameId);
-    console.log('userId', userId);
 
     await this.prisma.gameParticipant.delete({
       where: { gameId_userId: { gameId, userId } },
@@ -261,7 +258,6 @@ export class GameService {
     }
 
     const challenge = await this.challengeService.findRandomChallenge();
-    console.log('challenge', challenge);
 
     const newGame = await this.createGame(challenge.id);
 
