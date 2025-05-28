@@ -22,6 +22,31 @@
   <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
   [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
 
+# Code Dual API
+
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=code-dual-api&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=code-dual-api)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=code-dual-api&metric=coverage)](https://sonarcloud.io/summary/new_code?id=code-dual-api)
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=code-dual-api&metric=bugs)](https://sonarcloud.io/summary/new_code?id=code-dual-api)
+[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=code-dual-api&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=code-dual-api)
+[![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=code-dual-api&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=code-dual-api)
+[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=code-dual-api&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=code-dual-api)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=code-dual-api&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=code-dual-api)
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=code-dual-api&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=code-dual-api)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=code-dual-api&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=code-dual-api)
+[![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=code-dual-api&metric=sqale_index)](https://sonarcloud.io/summary/new_code?id=code-dual-api)
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=code-dual-api&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=code-dual-api)
+
+Een competitieve coding platform API gebouwd met NestJS, waar gebruikers kunnen deelnemen aan real-time programmeer uitdagingen.
+
+## Features
+
+- 🔐 **Authenticatie & Autorisatie** - JWT-based authentication
+- 🎮 **Real-time Gaming** - WebSocket game sessions
+- 📊 **Statistieken** - Uitgebreide gebruikersstatistieken
+- 💳 **Subscription Management** - Stripe integratie
+- 🏆 **Challenges** - Programmeer uitdagingen met verschillende moeilijkheidsniveaus
+- 🔧 **Code Execution** - Veilige code uitvoering en testing
+
 ## Description
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.

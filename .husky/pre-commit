@@ -1,0 +1,14 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running pre-commit quality checks..."
+
+# Run linting (CI mode - less strict)
+echo "📝 Checking code style..."
+npm run lint:ci
+
+# Run tests with coverage
+echo "🧪 Running tests..."
+npm run test:cov
+
+echo "✅ All quality checks passed!" 
