@@ -20,7 +20,7 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "test:ci": "jest --coverage --watchAll=false --testResultsProcessor=jest-sonar-reporter",
+    "test:ci": "jest --coverage --watchAll=false",
     "sonar": "sonar-scanner",
     "quality:check": "npm run lint:ci && npm run test:cov",
     "quality:check:strict": "npm run lint:check && npm run test:cov"
