@@ -10,6 +10,7 @@ import {
 import { ApiOkResponse } from '@nestjs/swagger';
 import { IsAuthenticated } from 'src/core/auth/auth.decorator';
 import { RequestWithAuth } from 'src/core/auth/auth.guard';
+import { RedirectDto } from './dto/redirect.dto';
 import { SubscriptionDto } from './dto/subscription.dto';
 import { SubscriptionService } from './subscription.service';
 
@@ -81,5 +82,15 @@ export class SubscriptionController {
   })
   async cancelSubscription(@Req() req: RequestWithAuth) {
     return this.subscriptionService.cancelSubscription(req.user.id);
+  }
+
+  @Post('customer-portal')
+  @IsAuthenticated()
+  @ApiOkResponse({
+    description: 'Create a customer portal session for billing and invoices',
+    type: RedirectDto,
+  })
+  async createCustomerPortalSession(@Req() req: RequestWithAuth) {
+    return this.subscriptionService.createCustomerPortalSession(req.user.id);
   }
 }

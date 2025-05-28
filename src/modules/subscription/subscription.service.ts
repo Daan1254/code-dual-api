@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/core/database/prisma.service';
 import Stripe from 'stripe';
 import { SubscriptionDto } from './dto/subscription.dto';
@@ -95,8 +95,8 @@ export class SubscriptionService {
           quantity: 1,
         },
       ],
-      success_url: `${process.env.FRONTEND_URL}/subscription`,
-      cancel_url: `${process.env.FRONTEND_URL}/subscription`,
+      success_url: `${process.env.FRONT_END_URL}/dashboard/subscriptions`,
+      cancel_url: `${process.env.FRONT_END_URL}/dashboard/subscriptions`,
     });
 
     return { url: session.url };
@@ -110,7 +110,7 @@ export class SubscriptionService {
     });
 
     if (!user?.stripeCustomerId) {
-      throw new Error('User not found or no stripe customer ID');
+      throw new BadRequestException('User not found or no stripe customer ID');
     }
 
     const customer = await this.stripe.customers.retrieve(
@@ -124,7 +124,7 @@ export class SubscriptionService {
       ?.data[0];
 
     if (!activeSubscription) {
-      throw new Error('No active subscription found');
+      throw new BadRequestException('No active subscription found');
     }
 
     // Update the subscription to the new price
@@ -224,8 +224,27 @@ export class SubscriptionService {
           quantity: 1,
         },
       ],
-      success_url: `http://localhost:3000/success`,
-      cancel_url: `http://localhost:3000/cancel`,
+      success_url: `${process.env.FRONT_END_URL}/dashboard/subscriptions`,
+      cancel_url: `${process.env.FRONT_END_URL}/dashboard/subscriptions`,
+    });
+
+    return { url: session.url };
+  }
+
+  async createCustomerPortalSession(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!user?.stripeCustomerId) {
+      throw new Error('User not found or no stripe customer ID');
+    }
+
+    const session = await this.stripe.billingPortal.sessions.create({
+      customer: user.stripeCustomerId,
+      return_url: `${process.env.FRONT_END_URL}/dashboard`,
     });
 
     return { url: session.url };
