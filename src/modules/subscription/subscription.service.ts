@@ -20,16 +20,47 @@ export class SubscriptionService {
       active: true,
       expand: ['data.default_price'],
     });
-    return subscriptions.data.map((subscription) =>
-      SubscriptionDto.fromStripe(subscription),
-    );
+    return subscriptions.data.map((subscription) => ({
+      ...SubscriptionDto.fromStripe(subscription),
+      status: 'available',
+    }));
   }
 
   async getCurrentSubscription(userId: string) {
-    const customers = await this.stripe.subscriptions.list({
-      customer: userId,
+    const user = await this.prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
     });
-    return customers;
+
+    if (!user?.stripeCustomerId) {
+      return null;
+    }
+
+    const customer = await this.stripe.customers.retrieve(
+      user.stripeCustomerId,
+      {
+        expand: ['subscriptions', 'subscriptions.data.items'],
+      },
+    );
+
+    const activeSubscription = (customer as Stripe.Customer).subscriptions
+      ?.data[0];
+    if (!activeSubscription) {
+      return null;
+    }
+
+    const product = await this.stripe.products.retrieve(
+      activeSubscription.items.data[0].price.product as string,
+      {
+        expand: ['default_price'],
+      },
+    );
+
+    return {
+      ...SubscriptionDto.fromStripe(product),
+      status: activeSubscription.status,
+    };
   }
 
   async createCheckoutSession(id: string) {
@@ -60,7 +91,136 @@ export class SubscriptionService {
       mode: 'subscription',
       line_items: [
         {
-          price: 'price_1RQPuxBob58MyrDKQf4gGHv6',
+          price: 'price_1RQR6vBob58MyrDKKHM4hFJg',
+          quantity: 1,
+        },
+      ],
+      success_url: `${process.env.FRONTEND_URL}/subscription`,
+      cancel_url: `${process.env.FRONTEND_URL}/subscription`,
+    });
+
+    return { url: session.url };
+  }
+
+  async changeSubscription(userId: string, newPriceId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!user?.stripeCustomerId) {
+      throw new Error('User not found or no stripe customer ID');
+    }
+
+    const customer = await this.stripe.customers.retrieve(
+      user.stripeCustomerId,
+      {
+        expand: ['subscriptions'],
+      },
+    );
+
+    const activeSubscription = (customer as Stripe.Customer).subscriptions
+      ?.data[0];
+
+    if (!activeSubscription) {
+      throw new Error('No active subscription found');
+    }
+
+    // Update the subscription to the new price
+    const updatedSubscription = await this.stripe.subscriptions.update(
+      activeSubscription.id,
+      {
+        items: [
+          {
+            id: activeSubscription.items.data[0].id,
+            price: newPriceId,
+          },
+        ],
+        proration_behavior: 'create_prorations',
+      },
+    );
+
+    return {
+      message: 'Subscription updated successfully',
+      subscriptionId: updatedSubscription.id,
+    };
+  }
+
+  async cancelSubscription(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!user?.stripeCustomerId) {
+      throw new Error('User not found or no stripe customer ID');
+    }
+
+    const customer = await this.stripe.customers.retrieve(
+      user.stripeCustomerId,
+      {
+        expand: ['subscriptions'],
+      },
+    );
+
+    const activeSubscription = (customer as Stripe.Customer).subscriptions
+      ?.data[0];
+
+    if (!activeSubscription) {
+      throw new Error('No active subscription found');
+    }
+
+    // Cancel the subscription at the end of the billing period
+    const canceledSubscription = await this.stripe.subscriptions.update(
+      activeSubscription.id,
+      {
+        cancel_at_period_end: true,
+      },
+    );
+
+    return {
+      message: 'Subscription will be canceled at the end of the billing period',
+      subscriptionId: canceledSubscription.id,
+    };
+  }
+
+  async createCheckoutSessionForSubscription(userId: string, priceId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    let customer: Stripe.Customer;
+
+    if (user.stripeCustomerId) {
+      customer = (await this.stripe.customers.retrieve(
+        user.stripeCustomerId,
+      )) as Stripe.Customer;
+    } else {
+      customer = await this.stripe.customers.create({
+        email: user.email,
+      });
+
+      // Update user with stripe customer ID
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { stripeCustomerId: customer.id },
+      });
+    }
+
+    const session = await this.stripe.checkout.sessions.create({
+      customer: customer.id,
+      mode: 'subscription',
+      line_items: [
+        {
+          price: priceId,
           quantity: 1,
         },
       ],

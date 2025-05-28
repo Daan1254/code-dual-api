@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Exclude, Expose } from 'class-transformer';
+import { Exclude, Expose, Type } from 'class-transformer';
 import { IsEmail } from 'class-validator';
+import { SubscriptionDto } from 'src/modules/subscription/dto/subscription.dto';
 
 @Exclude()
 export class UserDto {
@@ -25,4 +26,13 @@ export class UserDto {
   })
   @IsEmail()
   email: string;
+
+  @Expose()
+  @ApiProperty({
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    description: 'The subscription of the user',
+    nullable: true,
+  })
+  @Type(() => SubscriptionDto)
+  subscription?: SubscriptionDto;
 }

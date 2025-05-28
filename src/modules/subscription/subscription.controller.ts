@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Patch,
+  Post,
+  Req,
+} from '@nestjs/common';
 import { ApiOkResponse } from '@nestjs/swagger';
 import { IsAuthenticated } from 'src/core/auth/auth.decorator';
 import { RequestWithAuth } from 'src/core/auth/auth.guard';
@@ -13,6 +21,7 @@ export class SubscriptionController {
   @IsAuthenticated()
   @ApiOkResponse({
     description: 'Get the current subscription',
+    type: SubscriptionDto,
   })
   async getCurrentSubscription(@Req() req: RequestWithAuth) {
     return this.subscriptionService.getCurrentSubscription(req.user.id);
@@ -28,6 +37,7 @@ export class SubscriptionController {
   async getSubscriptions() {
     return this.subscriptionService.getSubscriptions();
   }
+
   @Post('create-checkout-session')
   @IsAuthenticated()
   @ApiOkResponse({
@@ -35,5 +45,41 @@ export class SubscriptionController {
   })
   async createCheckoutSession(@Req() req: RequestWithAuth) {
     return this.subscriptionService.createCheckoutSession(req.user.id);
+  }
+
+  @Post('create-checkout-session-for-subscription')
+  @IsAuthenticated()
+  @ApiOkResponse({
+    description: 'Create a checkout session for a specific subscription',
+  })
+  async createCheckoutSessionForSubscription(
+    @Req() req: RequestWithAuth,
+    @Body('priceId') priceId: string,
+  ) {
+    return this.subscriptionService.createCheckoutSessionForSubscription(
+      req.user.id,
+      priceId,
+    );
+  }
+
+  @Patch('change')
+  @IsAuthenticated()
+  @ApiOkResponse({
+    description: 'Change subscription to a different plan',
+  })
+  async changeSubscription(
+    @Req() req: RequestWithAuth,
+    @Body('priceId') priceId: string,
+  ) {
+    return this.subscriptionService.changeSubscription(req.user.id, priceId);
+  }
+
+  @Delete('cancel')
+  @IsAuthenticated()
+  @ApiOkResponse({
+    description: 'Cancel subscription',
+  })
+  async cancelSubscription(@Req() req: RequestWithAuth) {
+    return this.subscriptionService.cancelSubscription(req.user.id);
   }
 }
