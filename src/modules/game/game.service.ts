@@ -150,10 +150,6 @@ export class GameService {
       data: { isCompleted: true, completedAt: new Date() },
     });
 
-    // Update the local participant to reflect the database change
-    participant.isCompleted = true;
-
-    // Now check if all participants are completed
     const isLastPlayer = game.participants.every((p) => p.isCompleted);
 
     if (isLastPlayer) {

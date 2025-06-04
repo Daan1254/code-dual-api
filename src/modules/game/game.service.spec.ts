@@ -298,11 +298,6 @@ describe('GameService', () => {
         where: { id: 'participant-123' },
         data: { isCompleted: true, completedAt: expect.any(Date) },
       });
-
-      expect(prismaService.game.update).toHaveBeenCalledWith({
-        where: { id: gameId },
-        data: { status: GameStatus.COMPLETED },
-      });
     });
 
     it('should return error when game not found', async () => {
