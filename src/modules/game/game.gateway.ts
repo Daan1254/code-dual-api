@@ -13,8 +13,8 @@ import { Server, Socket } from 'socket.io';
 import { GameService } from './game.service';
 
 @Injectable()
-@WebSocketGateway(80, {
-  namespace: 'game',
+@WebSocketGateway({
+  namespace: 'game-ws',
   cors: {
     origin: '*',
     methods: ['GET', 'POST'],
