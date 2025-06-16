@@ -46,4 +46,16 @@ export class GameParticipantDto {
   })
   @Expose()
   isHost: boolean;
+
+  @ApiProperty({
+    type: Number,
+  })
+  @Expose()
+  percentage: number;
+
+  @ApiProperty({
+    type: Boolean,
+  })
+  @Expose()
+  sharedCode: boolean;
 }

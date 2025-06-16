@@ -70,6 +70,8 @@ model GameParticipant {
   isCompleted Boolean             @default(false)
   completedAt DateTime?
   isHost      Boolean             @default(false)
+  percentage  Int                 @default(0)
+  sharedCode  Boolean             @default(false)
 
   @@unique([gameId, userId])
 }
@@ -79,9 +81,8 @@ model CodeChallenge {
   title       String
   description String
   difficulty  GameDifficulty
-  testCases   Json // Store test cases as JSON
+  testCases   Json // Store test cases as JSON array
   starterCode String // Initial code template
-  solution    String // Reference solution
   games       Game[]
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt

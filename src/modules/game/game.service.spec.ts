@@ -22,6 +22,7 @@ describe('GameService', () => {
     gameParticipant: {
       findFirst: jest.fn(),
       findUnique: jest.fn(),
+      findMany: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
@@ -117,7 +118,6 @@ describe('GameService', () => {
       expect(prismaService.game.findFirst).toHaveBeenCalledWith({
         where: {
           id: gameId,
-          NOT: { status: GameStatus.COMPLETED },
         },
         include: {
           challenge: true,
@@ -258,13 +258,22 @@ describe('GameService', () => {
 
       (prismaService.game.findUnique as jest.Mock).mockResolvedValue(mockGame);
       (prismaService.gameParticipant.update as jest.Mock).mockResolvedValue({});
+      (prismaService.gameParticipant.findMany as jest.Mock).mockResolvedValue([
+        { id: 'participant-123', userId, isCompleted: true },
+        { id: 'participant-456', userId: 'user-456', isCompleted: false },
+      ]);
 
-      const result = await service.submitCode(gameId, userId);
+      const result = await service.submitCode(gameId, userId, 100, 'code');
 
       expect(result.ok).toBe(true);
       expect(prismaService.gameParticipant.update).toHaveBeenCalledWith({
         where: { id: 'participant-123' },
-        data: { isCompleted: true, completedAt: expect.any(Date) },
+        data: {
+          isCompleted: true,
+          completedAt: expect.any(Date),
+          currentCode: 'code',
+          percentage: 100,
+        },
       });
     });
 
@@ -290,20 +299,34 @@ describe('GameService', () => {
 
       (prismaService.game.findUnique as jest.Mock).mockResolvedValue(mockGame);
       (prismaService.gameParticipant.update as jest.Mock).mockResolvedValue({});
+      (prismaService.gameParticipant.findMany as jest.Mock).mockResolvedValue([
+        { id: 'participant-123', userId, isCompleted: true },
+        { id: 'participant-456', userId: 'user-456', isCompleted: true },
+      ]);
       (prismaService.game.update as jest.Mock).mockResolvedValue({});
 
-      await service.submitCode(gameId, userId);
+      await service.submitCode(gameId, userId, 100, 'code');
 
       expect(prismaService.gameParticipant.update).toHaveBeenCalledWith({
         where: { id: 'participant-123' },
-        data: { isCompleted: true, completedAt: expect.any(Date) },
+        data: {
+          isCompleted: true,
+          completedAt: expect.any(Date),
+          currentCode: 'code',
+          percentage: 100,
+        },
       });
     });
 
     it('should return error when game not found', async () => {
       (prismaService.game.findUnique as jest.Mock).mockResolvedValue(null);
 
-      const result = await service.submitCode('game-123', 'user-123');
+      const result = await service.submitCode(
+        'game-123',
+        'user-123',
+        100,
+        'code',
+      );
 
       expect(result.ok).toBe(false);
       expect(result.error).toEqual({
@@ -326,7 +349,12 @@ describe('GameService', () => {
 
       (prismaService.game.findUnique as jest.Mock).mockResolvedValue(mockGame);
 
-      const result = await service.submitCode('game-123', 'user-123');
+      const result = await service.submitCode(
+        'game-123',
+        'user-123',
+        100,
+        'code',
+      );
 
       expect(result.ok).toBe(false);
       expect(result.error).toEqual({
@@ -349,7 +377,12 @@ describe('GameService', () => {
 
       (prismaService.game.findUnique as jest.Mock).mockResolvedValue(mockGame);
 
-      const result = await service.submitCode('game-123', 'user-123');
+      const result = await service.submitCode(
+        'game-123',
+        'user-123',
+        100,
+        'code',
+      );
 
       expect(result.ok).toBe(false);
       expect(result.error).toEqual({

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import {
   ConnectedSocket,
+  MessageBody,
   OnGatewayConnection,
   OnGatewayDisconnect,
   SubscribeMessage,
@@ -54,10 +55,16 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('submit')
-  async handleSubmit(@ConnectedSocket() client: Socket) {
+  async handleSubmit(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { percentage: number; code: string },
+  ) {
+    console.log(data);
     const result = await this.gameService.submitCode(
       client.data.gameId,
       client.data.userId,
+      data.percentage,
+      data.code,
     );
 
     if (!result.ok) {
@@ -132,5 +139,30 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     } catch (error) {
       client.emit('error', { message: error.message });
     }
+  }
+
+  @SubscribeMessage('shareCode')
+  async handleShareCode(@ConnectedSocket() client: Socket) {
+    const result = await this.gameService.shareCode(
+      client.data.gameId,
+      client.data.userId,
+    );
+
+    if (!result.ok) {
+      client.emit('error', { ...result.error });
+      return;
+    }
+
+    const game = await this.gameService.findGame(
+      client.data.gameId,
+      client.data.userId,
+    );
+
+    if (!game.ok) {
+      client.emit('error', { ...game.error });
+      return;
+    }
+
+    this.server.to(client.data.gameId).emit('gameState', game.data);
   }
 }

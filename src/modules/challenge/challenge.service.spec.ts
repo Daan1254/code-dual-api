@@ -39,15 +39,14 @@ describe('ChallengeService', () => {
       difficulty: 'EASY',
       testCases: [
         {
-          input: '[2,7,11,15], target = 9',
+          id: 1,
+          description: 'Basic test case',
+          inputs: { nums: [2, 7, 11, 15], target: 9 },
           expectedOutput: '[0,1]',
+          hidden: false,
         },
       ],
       starterCode: 'function twoSum(nums, target) {\n    // Your code here\n}',
-      solution:
-        'function twoSum(nums, target) {\n    const map = new Map();\n    for (let i = 0; i < nums.length; i++) {\n        const complement = target - nums[i];\n        if (map.has(complement)) {\n            return [map.get(complement), i];\n        }\n        map.set(nums[i], i);\n    }\n}',
-      createdAt: new Date('2024-01-01'),
-      updatedAt: new Date('2024-01-01'),
     };
 
     it('should return a challenge when challenge exists', async () => {
@@ -143,6 +142,8 @@ describe('ChallengeService', () => {
         title: 'Simple Challenge',
         description: 'A simple challenge',
         difficulty: 'EASY',
+        testCases: [],
+        starterCode: '',
       };
 
       (mockPrisma.codeChallenge.findFirst as jest.Mock).mockResolvedValue(
@@ -166,14 +167,14 @@ describe('ChallengeService', () => {
         difficulty: 'HARD',
         testCases: [
           {
-            input: 'complex input',
+            id: 1,
+            description: 'Complex test case',
+            inputs: { input: 'complex input' },
             expectedOutput: 'expected result',
+            hidden: false,
           },
         ],
         starterCode: 'function solve() { /* code */ }',
-        solution: 'function solve() { return "solution"; }',
-        createdAt: new Date('2024-01-15'),
-        updatedAt: new Date('2024-01-20'),
       };
 
       (mockPrisma.codeChallenge.findFirst as jest.Mock).mockResolvedValue(
@@ -189,9 +190,6 @@ describe('ChallengeService', () => {
       expect(result.difficulty).toBe('HARD');
       expect(result.testCases).toHaveLength(1);
       expect(result.starterCode).toBe('function solve() { /* code */ }');
-      expect(result.solution).toBe('function solve() { return "solution"; }');
-      expect(result.createdAt).toEqual(new Date('2024-01-15'));
-      expect(result.updatedAt).toEqual(new Date('2024-01-20'));
     });
 
     it('should use correct ordering parameters', async () => {
@@ -233,12 +231,30 @@ describe('ChallengeService', () => {
     });
 
     it('should handle unexpected data types gracefully', async () => {
-      // Test with empty object
-      (mockPrisma.codeChallenge.findFirst as jest.Mock).mockResolvedValue({});
+      // Test with empty object but with required fields
+      const emptyChallenge = {
+        id: 'empty-challenge',
+        title: '',
+        description: '',
+        difficulty: 'EASY',
+        testCases: [],
+        starterCode: '',
+      };
+
+      (mockPrisma.codeChallenge.findFirst as jest.Mock).mockResolvedValue(
+        emptyChallenge,
+      );
 
       const result = await service.findRandomChallenge();
 
-      expect(result).toEqual({});
+      expect(result).toMatchObject({
+        id: 'empty-challenge',
+        title: '',
+        description: '',
+        difficulty: 'EASY',
+        testCases: [],
+        starterCode: '',
+      });
     });
 
     it('should maintain consistent behavior across multiple calls', async () => {

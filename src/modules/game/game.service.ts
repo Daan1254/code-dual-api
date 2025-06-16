@@ -47,7 +47,6 @@ export class GameService {
     const game = await this.prisma.game.findFirst({
       where: {
         id,
-        NOT: { status: GameStatus.COMPLETED },
       },
       include: {
         challenge: true,
@@ -72,6 +71,26 @@ export class GameService {
     }
 
     return { ok: true, data: GameDto.fromDb(game) };
+  }
+
+  async shareCode(gameId: string, userId: string): Promise<SafeResponse<null>> {
+    const game = await this.prisma.gameParticipant.findUnique({
+      where: { gameId_userId: { gameId, userId } },
+    });
+
+    if (!game) {
+      return {
+        ok: false,
+        error: { code: 'PLAYER_NOT_IN_GAME', message: 'Player not in game' },
+      };
+    }
+
+    await this.prisma.gameParticipant.update({
+      where: { id: game.id },
+      data: { sharedCode: true },
+    });
+
+    return { ok: true, data: null };
   }
 
   async findGameByUserId(userId: any): Promise<SafeResponse<GameDto>> {
@@ -113,7 +132,12 @@ export class GameService {
     return { ok: true, data: GameDto.fromDb(game) };
   }
 
-  async submitCode(gameId: any, userId: any): Promise<SafeResponse<null>> {
+  async submitCode(
+    gameId: string,
+    userId: string,
+    percentage: number,
+    code: string,
+  ): Promise<SafeResponse<null>> {
     const game = await this.prisma.game.findUnique({
       where: { id: gameId },
       include: { participants: true },
@@ -147,10 +171,22 @@ export class GameService {
 
     await this.prisma.gameParticipant.update({
       where: { id: participant.id },
-      data: { isCompleted: true, completedAt: new Date() },
+      data: {
+        isCompleted: true,
+        completedAt: new Date(),
+        currentCode: code,
+        percentage,
+      },
     });
 
-    const isLastPlayer = game.participants.every((p) => p.isCompleted);
+    // Check if all players are done
+    const allParticipants = await this.prisma.gameParticipant.findMany({
+      where: { gameId },
+    });
+
+    const isLastPlayer = allParticipants.every((p) =>
+      p.id === participant.id ? true : p.isCompleted,
+    );
 
     if (isLastPlayer) {
       await this.prisma.game.update({

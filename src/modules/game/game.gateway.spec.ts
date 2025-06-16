@@ -16,6 +16,7 @@ describe('GameGateway', () => {
     startGame: jest.fn(),
     leaveGame: jest.fn(),
     findGameByUserId: jest.fn(),
+    shareCode: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -214,6 +215,8 @@ describe('GameGateway', () => {
     };
 
     it('should handle successful code submission', async () => {
+      const submitData = { percentage: 85, code: 'console.log("test")' };
+
       (mockGameService.submitCode as jest.Mock).mockResolvedValue({
         ok: true,
         data: null,
@@ -223,11 +226,13 @@ describe('GameGateway', () => {
         data: mockGameDto,
       });
 
-      await gateway.handleSubmit(mockSocket as Socket);
+      await gateway.handleSubmit(mockSocket as Socket, submitData);
 
       expect(mockGameService.submitCode).toHaveBeenCalledWith(
         'game-123',
         'user-123',
+        85,
+        'console.log("test")',
       );
       expect(mockGameService.findGame).toHaveBeenCalledWith(
         'game-123',
@@ -239,6 +244,8 @@ describe('GameGateway', () => {
     });
 
     it('should emit error when submitCode fails', async () => {
+      const submitData = { percentage: 85, code: 'console.log("test")' };
+
       (mockGameService.submitCode as jest.Mock).mockResolvedValue({
         ok: false,
         error: {
@@ -247,11 +254,13 @@ describe('GameGateway', () => {
         },
       });
 
-      await gateway.handleSubmit(mockSocket as Socket);
+      await gateway.handleSubmit(mockSocket as Socket, submitData);
 
       expect(mockGameService.submitCode).toHaveBeenCalledWith(
         'game-123',
         'user-123',
+        85,
+        'console.log("test")',
       );
       expect(mockSocket.emit).toHaveBeenCalledWith('error', {
         code: 'PLAYER_ALREADY_COMPLETED',
@@ -262,6 +271,8 @@ describe('GameGateway', () => {
     });
 
     it('should emit error when finding game after submit fails', async () => {
+      const submitData = { percentage: 85, code: 'console.log("test")' };
+
       (mockGameService.submitCode as jest.Mock).mockResolvedValue({
         ok: true,
         data: null,
@@ -271,11 +282,13 @@ describe('GameGateway', () => {
         error: { code: 'GAME_NOT_FOUND', message: 'Game not found' },
       });
 
-      await gateway.handleSubmit(mockSocket as Socket);
+      await gateway.handleSubmit(mockSocket as Socket, submitData);
 
       expect(mockGameService.submitCode).toHaveBeenCalledWith(
         'game-123',
         'user-123',
+        85,
+        'console.log("test")',
       );
       expect(mockGameService.findGame).toHaveBeenCalledWith(
         'game-123',
@@ -527,6 +540,100 @@ describe('GameGateway', () => {
     });
   });
 
+  describe('handleShareCode', () => {
+    beforeEach(() => {
+      mockSocket.data = {
+        userId: 'user-123',
+        gameId: 'game-123',
+      };
+    });
+
+    const mockGameDto = {
+      id: 'game-123',
+      status: GameStatus.IN_PROGRESS,
+      participants: [
+        {
+          id: 'participant-123',
+          userId: 'user-123',
+          isHost: true,
+          user: { id: 'user-123', username: 'testuser' },
+        },
+      ],
+    };
+
+    it('should handle share code successfully', async () => {
+      (mockGameService.shareCode as jest.Mock).mockResolvedValue({
+        ok: true,
+        data: null,
+      });
+      (mockGameService.findGame as jest.Mock).mockResolvedValue({
+        ok: true,
+        data: mockGameDto,
+      });
+
+      await gateway.handleShareCode(mockSocket as Socket);
+
+      expect(mockGameService.shareCode).toHaveBeenCalledWith(
+        'game-123',
+        'user-123',
+      );
+      expect(mockGameService.findGame).toHaveBeenCalledWith(
+        'game-123',
+        'user-123',
+      );
+      expect(mockServer.to).toHaveBeenCalledWith('game-123');
+      expect(mockServer.emit).toHaveBeenCalledWith('gameState', mockGameDto);
+      expect(mockSocket.emit).not.toHaveBeenCalledWith('error');
+    });
+
+    it('should emit error when shareCode fails', async () => {
+      (mockGameService.shareCode as jest.Mock).mockResolvedValue({
+        ok: false,
+        error: { code: 'PLAYER_NOT_IN_GAME', message: 'Player not in game' },
+      });
+
+      await gateway.handleShareCode(mockSocket as Socket);
+
+      expect(mockGameService.shareCode).toHaveBeenCalledWith(
+        'game-123',
+        'user-123',
+      );
+      expect(mockSocket.emit).toHaveBeenCalledWith('error', {
+        code: 'PLAYER_NOT_IN_GAME',
+        message: 'Player not in game',
+      });
+      expect(mockGameService.findGame).not.toHaveBeenCalled();
+      expect(mockServer.emit).not.toHaveBeenCalled();
+    });
+
+    it('should emit error when finding game after share code fails', async () => {
+      (mockGameService.shareCode as jest.Mock).mockResolvedValue({
+        ok: true,
+        data: null,
+      });
+      (mockGameService.findGame as jest.Mock).mockResolvedValue({
+        ok: false,
+        error: { code: 'GAME_NOT_FOUND', message: 'Game not found' },
+      });
+
+      await gateway.handleShareCode(mockSocket as Socket);
+
+      expect(mockGameService.shareCode).toHaveBeenCalledWith(
+        'game-123',
+        'user-123',
+      );
+      expect(mockGameService.findGame).toHaveBeenCalledWith(
+        'game-123',
+        'user-123',
+      );
+      expect(mockSocket.emit).toHaveBeenCalledWith('error', {
+        code: 'GAME_NOT_FOUND',
+        message: 'Game not found',
+      });
+      expect(mockServer.emit).not.toHaveBeenCalled();
+    });
+  });
+
   describe('gateway structure', () => {
     it('should be defined', () => {
       expect(gateway).toBeDefined();
@@ -555,6 +662,11 @@ describe('GameGateway', () => {
     it('should have handleLeave method', () => {
       expect(gateway.handleLeave).toBeDefined();
       expect(typeof gateway.handleLeave).toBe('function');
+    });
+
+    it('should have handleShareCode method', () => {
+      expect(gateway.handleShareCode).toBeDefined();
+      expect(typeof gateway.handleShareCode).toBe('function');
     });
 
     it('should have server property', () => {
