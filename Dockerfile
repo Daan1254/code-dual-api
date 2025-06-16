@@ -34,7 +34,7 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 # Install production dependencies
-RUN npm ci --only=production && \
+RUN npm ci --only=production --ignore-scripts && \
     npm rebuild bcrypt --build-from-source && \
     npx prisma generate
 
