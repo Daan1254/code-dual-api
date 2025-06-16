@@ -49,6 +49,9 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV DATABASE_URL=${DATABASE_URL}
 ENV JWT_SECRET=${JWT_SECRET}
+ENV STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+ENV STRIPE_ACCOUNT_ID=${STRIPE_PUBLISHABLE_KEY}
+ENV FRONT_END_URL=${FRONT_END_URL}
 
 # Run migrations and start the application
 CMD npx prisma migrate deploy && npm run start:prod
